@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CRM Taller</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#121212">
+    <link rel="apple-touch-icon" href="/assets/icon-192.png">
+</head>
+<body>
+    <div id="app">
+        <!-- Main Application Shell -->
+        <header class="app-header">
+            <h1>CRM Taller</h1>
+            <nav>
+                <button id="nav-clients" class="nav-btn active">Clientes</button>
+                <button id="nav-jobs" class="nav-btn">Órdenes</button>
+            </nav>
+        </header>
+
+        <main id="main-content" class="app-content">
+            <div id="view-clients" class="view active">
+                <h2>Clientes</h2>
+                <p>Lista de clientes próximamente...</p>
+            </div>
+            <div id="view-jobs" class="view" style="display: none;">
+                <h2>Órdenes de Trabajo</h2>
+                <p>Lista de órdenes próximamente...</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts (ES Modules) -->
+    <script type="module" src="/js/app.js"></script>
+</body>
+</html>
