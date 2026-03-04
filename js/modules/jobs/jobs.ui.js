@@ -1,180 +1,109 @@
-import { jobsService } from '../../services/jobs.service.js';
+import { jobsService } from '../services/jobs.service.js';
 import { store } from '../../state/store.js';
 
 export function initJobsUI() {
-    const container = document.getElementById('view-jobs');
-
-    container.innerHTML = `
-        <div class="header-actions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--spacing-md)">
-            <h2>Órdenes de Trabajo</h2>
-            <button id="btn-add-job" class="btn">+ Nueva Orden</button>
-        </div>
-
-        <div id="jobs-list"></div>
-
-        <div id="job-form-container" class="card" style="display:none;">
-            <h3 id="job-form-title">Nueva Orden</h3>
-            <form id="job-form">
-                <input type="hidden" id="job-id">
-                
-                <div class="form-group">
-                    <label>Cliente *</label>
-                    <select id="job-client-id" class="form-control" required></select>
-                </div>
-                <div class="form-group">
-                    <label>Dispositivo/Equipo *</label>
-                    <input type="text" id="job-device" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Estado *</label>
-                    <select id="job-status" class="form-control" required>
-                        <option value="Pendiente">Pendiente</option>
-                        <option value="En proceso">En proceso</option>
-                        <option value="Finalizado">Finalizado</option>
-                        <option value="Entregado">Entregado</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Precio Estimado / Final ($)</label>
-                    <input type="number" id="job-price" class="form-control" step="0.01">
-                </div>
-                <div class="form-group">
-                    <label>Notas</label>
-                    <textarea id="job-notes" class="form-control" rows="3"></textarea>
-                </div>
-                <div style="display:flex; gap:10px; margin-top:15px;">
-                    <button type="submit" class="btn">Guardar</button>
-                    <button type="button" id="btn-cancel-job" class="btn" style="background:#555; color:#fff;">Cancelar</button>
-                </div>
-            </form>
-        </div>
-    `;
-
-    const jobsList = document.getElementById('jobs-list');
-    const formContainer = document.getElementById('job-form-container');
-    const form = document.getElementById('job-form');
-    const clientSelect = document.getElementById('job-client-id');
-
-    const statusColors = {
-        'Pendiente': '#FFD600',
-        'En proceso': '#29B6F6',
-        'Finalizado': '#00E676',
-        'Entregado': '#B3B3B3'
-    };
-
-    function renderJobs(jobs) {
-        if (jobs.length === 0) {
-            jobsList.innerHTML = '<p style="color:var(--text-secondary)">No hay órdenes registradas.</p>';
-            return;
-        }
-
-        jobsList.innerHTML = jobs.map(j => `
-            <div class="card" style="margin-bottom:var(--spacing-md)">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div>
-                        <h4 style="margin-bottom:4px">${j.device}</h4>
-                        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:8px">
-                            👤 ${j.client ? j.client.name : 'Desconocido'}
-                        </p>
-                    </div>
-                    <span style="background:${statusColors[j.status]}; color:#000; padding:4px 8px; border-radius:4px; font-size:0.8rem; font-weight:bold;">
-                        ${j.status}
-                    </span>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-weight:bold; color:var(--accent-color)">$${j.price || '0.00'}</span>
-                    <div style="display:flex; gap:8px;">
-                        <button class="btn btn-edit-job" data-id="${j.id}" style="padding:6px 10px; font-size:0.8rem;">Editar</button>
-                        <button class="btn btn-danger btn-delete-job" data-id="${j.id}" style="padding:6px 10px; font-size:0.8rem;">Eliminar</button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-
-        document.querySelectorAll('.btn-edit-job').forEach(btn => {
-            btn.addEventListener('click', (e) => editJob(e.target.dataset.id));
-        });
-        document.querySelectorAll('.btn-delete-job').forEach(btn => {
-            btn.addEventListener('click', (e) => deleteJob(e.target.dataset.id));
-        });
-    }
-
-    function populateClientSelect() {
-        const clients = store.getState().clients;
-        if (clients.length === 0) {
-            clientSelect.innerHTML = '<option value="">(Agrega un cliente primero)</option>';
-            return;
-        }
-        clientSelect.innerHTML = clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-    }
-
-    store.subscribe('JOBS_UPDATED', renderJobs);
-    store.subscribe('CLIENTS_UPDATED', populateClientSelect);
-
+    // 1. Root level jobs listing (all jobs)
+    store.subscribe('JOBS_UPDATED', renderAllJobsList);
     jobsService.loadJobs();
 
-    document.getElementById('btn-add-job').addEventListener('click', () => {
-        populateClientSelect();
-        form.reset();
-        document.getElementById('job-id').value = '';
-        document.getElementById('job-form-title').innerText = 'Nueva Orden';
-        formContainer.style.display = 'block';
-        jobsList.style.display = 'none';
+    // 2. Drill-down item-specific jobs
+    window.addEventListener('load-item-jobs', async (e) => {
+        const { itemId } = e.detail;
+        const allJobs = await jobsService.loadJobs();
+        const itemJobs = allJobs.filter(j => j.itemId === itemId);
+        renderItemJobsList(itemJobs);
     });
 
-    document.getElementById('btn-cancel-job').addEventListener('click', () => {
-        formContainer.style.display = 'none';
-        jobsList.style.display = 'block';
-    });
+    window.addEventListener('create-job', async (e) => {
+        const { itemId } = e.detail;
+        const description = prompt('Descripción del trabajo:');
+        const price = prompt('Precio de la orden:');
+        if (description) {
+            await jobsService.createJob({
+                itemId,
+                description,
+                price: parseFloat(price) || 0,
+                status: 'pendiente'
+            });
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('job-id').value;
-        const data = {
-            clientId: document.getElementById('job-client-id').value,
-            device: document.getElementById('job-device').value,
-            status: document.getElementById('job-status').value,
-            price: document.getElementById('job-price').value,
-            notes: document.getElementById('job-notes').value
-        };
-
-        try {
-            if (id) {
-                await jobsService.updateJob(id, data);
-            } else {
-                await jobsService.createJob(data);
-            }
-            formContainer.style.display = 'none';
-            jobsList.style.display = 'block';
-        } catch (err) {
-            alert('Error al guardar: ' + err.message);
+            // Reload list for drill-down view
+            const allJobs = await jobsService.loadJobs();
+            renderItemJobsList(allJobs.filter(j => j.itemId === itemId));
         }
     });
 
-    function editJob(id) {
-        const job = store.getState().jobs.find(j => j.id === id);
-        if (!job) return;
+    // Make functions global for inline onclick
+    window.deleteJob = async (id, event) => {
+        event.stopPropagation();
+        if (confirm('¿Eliminar trabajo?')) {
+            const job = store.getState().jobs?.find(j => j.id === id);
+            await jobsService.deleteJob(id);
+            if (job) {
+                // Re-render item list if we are in drill-down
+                const allJobs = await jobsService.loadJobs();
+                renderItemJobsList(allJobs.filter(j => j.itemId === job.itemId));
+            }
+        }
+    };
 
-        populateClientSelect();
-        document.getElementById('job-id').value = job.id;
-        document.getElementById('job-client-id').value = job.clientId;
-        document.getElementById('job-device').value = job.device;
-        document.getElementById('job-status').value = job.status;
-        document.getElementById('job-price').value = job.price || '';
-        document.getElementById('job-notes').value = job.notes || '';
-
-        document.getElementById('job-form-title').innerText = 'Editar Orden';
-        formContainer.style.display = 'block';
-        jobsList.style.display = 'none';
-    }
-
-    async function deleteJob(id) {
-        if (confirm('¿Estás seguro de eliminar esta orden?')) {
-            try {
-                await jobsService.deleteJob(id);
-            } catch (err) {
-                alert('Hubo un error al eliminar: ' + err.message);
+    window.finishJob = async (id, event) => {
+        event.stopPropagation();
+        if (confirm('¿Marcar como terminado?')) {
+            const job = store.getState().jobs?.find(j => j.id === id);
+            await jobsService.updateJob(id, { status: 'terminado' });
+            if (job) {
+                const allJobs = await jobsService.loadJobs();
+                renderItemJobsList(allJobs.filter(j => j.itemId === job.itemId));
             }
         }
     }
+}
+
+function renderAllJobsList(jobs) {
+    const container = document.getElementById('jobs-list');
+    if (!container) return;
+
+    if (!jobs || jobs.length === 0) {
+        container.innerHTML = '<p>No hay órdenes de trabajo.</p>';
+        return;
+    }
+
+    container.innerHTML = jobs.map(j => `
+        <div class="card" style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h4 style="color: var(--accent-color); margin-bottom: 4px;">${j.description || 'Sin descripción'}</h4>
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">Estado: ${j.status}</p>
+                <p style="font-size: 0.9rem; color: var(--accent-hover);">$${j.price || 0}</p>
+                <!-- We would normally resolve the Client and Equipment names here, simplifying for POC -->
+            </div>
+             <div class="actions" style="display: flex; flex-direction: column; gap: 8px;">
+                ${j.status !== 'terminado' ? `<button onclick="finishJob('${j.id}', event)" class="secondary-btn small" style="color: var(--accent-color);">✔️ Terminar</button>` : ''}
+                <button onclick="deleteJob('${j.id}', event)" class="primary-btn small" style="background-color: var(--danger-color);">🗑️ Eliminar</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderItemJobsList(jobs) {
+    const container = document.getElementById('item-jobs-list');
+    if (!container) return;
+
+    if (!jobs || jobs.length === 0) {
+        container.innerHTML = '<p>No hay trabajos para este item.</p>';
+        return;
+    }
+
+    container.innerHTML = jobs.map(j => `
+        <div class="card" style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h4 style="color: var(--accent-color); margin-bottom: 4px;">${j.description || 'Sin descripción'}</h4>
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">Estado: ${j.status}</p>
+                <p style="font-size: 0.9rem; color: var(--accent-hover);">$${j.price || 0}</p>
+            </div>
+             <div class="actions" style="display: flex; flex-direction: column; gap: 8px;">
+                ${j.status !== 'terminado' ? `<button onclick="finishJob('${j.id}', event)" class="secondary-btn small" style="color: var(--accent-color);">✔️</button>` : ''}
+                <button onclick="deleteJob('${j.id}', event)" class="primary-btn small" style="background-color: var(--danger-color);">🗑️</button>
+            </div>
+        </div>
+    `).join('');
 }

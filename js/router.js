@@ -1,24 +1,50 @@
 export function initRouter() {
-    const navClients = document.getElementById('nav-clients');
-    const navJobs = document.getElementById('nav-jobs');
+    window.addEventListener('hashchange', handleRouteChange);
 
-    const viewClients = document.getElementById('view-clients');
-    const viewJobs = document.getElementById('view-jobs');
+    // Trigger on first load
+    handleRouteChange();
+}
 
-    function switchView(viewName) {
-        if (viewName === 'clients') {
-            navClients.classList.add('active');
-            navJobs.classList.remove('active');
-            viewClients.style.display = 'block';
-            viewJobs.style.display = 'none';
-        } else {
-            navClients.classList.remove('active');
-            navJobs.classList.add('active');
-            viewClients.style.display = 'none';
-            viewJobs.style.display = 'block';
+function handleRouteChange() {
+    const hash = window.location.hash || '#/clients';
+
+    // Hide all views first
+    document.querySelectorAll('.view').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+
+    // Simple mock router logic for drill-down views
+    if (hash === '#/clients' || hash === '') {
+        document.getElementById('view-clients').style.display = 'block';
+        document.getElementById('nav-clients')?.classList.add('active');
+        // trigger render for clients list
+    } else if (hash.startsWith('#/client/')) {
+        const id = hash.split('/')[2];
+        const view = document.getElementById('view-client-detail');
+        if (view) {
+            view.style.display = 'block';
+            view.dataset.id = id;
+            // trigger custom event to notify module
+            window.dispatchEvent(new CustomEvent('nav-client-detail', { detail: { id } }));
         }
+    } else if (hash.startsWith('#/equipment/')) {
+        const id = hash.split('/')[2];
+        const view = document.getElementById('view-equipment-detail');
+        if (view) {
+            view.style.display = 'block';
+            view.dataset.id = id;
+            window.dispatchEvent(new CustomEvent('nav-equipment-detail', { detail: { id } }));
+        }
+    } else if (hash.startsWith('#/item/')) {
+        const id = hash.split('/')[2];
+        const view = document.getElementById('view-item-detail');
+        if (view) {
+            view.style.display = 'block';
+            view.dataset.id = id;
+            window.dispatchEvent(new CustomEvent('nav-item-detail', { detail: { id } }));
+        }
+    } else if (hash === '#/jobs') {
+        document.getElementById('view-jobs').style.display = 'block';
+        document.getElementById('nav-jobs')?.classList.add('active');
+        // trigger render for jobs list
     }
-
-    navClients.addEventListener('click', () => switchView('clients'));
-    navJobs.addEventListener('click', () => switchView('jobs'));
 }

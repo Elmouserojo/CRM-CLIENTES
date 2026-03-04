@@ -1,5 +1,5 @@
 export const DB_NAME = 'crm_app_db';
-export const DB_VERSION = 1;
+export const DB_VERSION = 2; // Incremented version to apply changes
 
 let dbInstance = null;
 
@@ -25,9 +25,26 @@ export async function initDB() {
             if (!db.objectStoreNames.contains('clients')) {
                 db.createObjectStore('clients', { keyPath: 'id' });
             }
+            if (!db.objectStoreNames.contains('equipment')) {
+                const equipmentStore = db.createObjectStore('equipment', { keyPath: 'id' });
+                equipmentStore.createIndex('clientId', 'clientId', { unique: false });
+            }
+            if (!db.objectStoreNames.contains('items')) {
+                const itemsStore = db.createObjectStore('items', { keyPath: 'id' });
+                itemsStore.createIndex('equipmentId', 'equipmentId', { unique: false });
+            }
             if (!db.objectStoreNames.contains('jobs')) {
                 const jobStore = db.createObjectStore('jobs', { keyPath: 'id' });
-                jobStore.createIndex('clientId', 'clientId', { unique: false });
+                jobStore.createIndex('itemId', 'itemId', { unique: false });
+            } else {
+                // Future-proofing or if migrating: ensure the correct index. 
+                // We won't try to auto-migrate 'clientId' to 'itemId' here, just relying on new data structure.
+                // IndexedDB onupgradeneeded doesn't easily let us change existing indexes without removing/re-adding object store,
+                // so we assume clean DB or we can accept having the old clientId index if it existed in v1.
+            }
+            if (!db.objectStoreNames.contains('photos')) {
+                const photosStore = db.createObjectStore('photos', { keyPath: 'id' });
+                photosStore.createIndex('entityType_entityId', ['entityType', 'entityId'], { unique: false });
             }
             if (!db.objectStoreNames.contains('settings')) {
                 db.createObjectStore('settings', { keyPath: 'id' });

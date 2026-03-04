@@ -1,143 +1,112 @@
-import { clientsService } from '../../services/clients.service.js';
+import { clientsService } from '../services/clients.service.js';
 import { store } from '../../state/store.js';
+import { updateBreadcrumb } from '../ui/core.ui.js';
 
 export function initClientsUI() {
-    const container = document.getElementById('view-clients');
+    const btnAdd = document.getElementById('btn-add-client');
+    const container = document.getElementById('clients-list');
 
-    container.innerHTML = `
-        <div class="header-actions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--spacing-md)">
-            <h2>Clientes</h2>
-            <button id="btn-add-client" class="btn">+ Nuevo Cliente</button>
-        </div>
-        
-        <div class="form-group">
-            <input type="text" id="search-client" class="form-control" placeholder="Buscar cliente...">
-        </div>
-
-        <div id="clients-list"></div>
-
-        <div id="client-form-container" class="card" style="display:none;">
-            <h3 id="client-form-title">Nuevo Cliente</h3>
-            <form id="client-form">
-                <input type="hidden" id="client-id">
-                <div class="form-group">
-                    <label>Nombre *</label>
-                    <input type="text" id="client-name" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Teléfono *</label>
-                    <input type="tel" id="client-phone" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="client-email" class="form-control">
-                </div>
-                <div style="display:flex; gap:10px; margin-top:15px;">
-                    <button type="submit" class="btn">Guardar</button>
-                    <button type="button" id="btn-cancel-client" class="btn" style="background:#555; color:#fff;">Cancelar</button>
-                </div>
-            </form>
-        </div>
-    `;
-
-    const clientsList = document.getElementById('clients-list');
-    const formContainer = document.getElementById('client-form-container');
-    const form = document.getElementById('client-form');
-    const searchInput = document.getElementById('search-client');
-
-    function renderClients(clients) {
-        if (clients.length === 0) {
-            clientsList.innerHTML = '<p style="color:var(--text-secondary)">No hay clientes registrados.</p>';
-            return;
+    window.deleteClient = async (id, event) => {
+        event.stopPropagation(); // prevent drill-down
+        if (confirm('¿Eliminar cliente?')) {
+            await clientsService.deleteClient(id);
         }
+    };
 
-        clientsList.innerHTML = clients.map(c => `
-            <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <h4 style="margin-bottom:4px">${c.name}</h4>
-                    <p style="color:var(--text-secondary); font-size:0.9rem;">
-                        📞 ${c.phone} ${c.email ? `| ✉️ ${c.email}` : ''}
-                    </p>
-                </div>
-                <div style="display:flex; gap:8px;">
-                    <button class="btn btn-edit-client" data-id="${c.id}" style="padding:6px 10px; font-size:0.8rem;">Editar</button>
-                    <button class="btn btn-danger btn-delete-client" data-id="${c.id}" style="padding:6px 10px; font-size:0.8rem;">Eliminar</button>
-                </div>
-            </div>
-        `).join('');
+    window.editClient = async (id, event) => {
+        event.stopPropagation(); // prevent drill-down
+        const name = prompt('Nuevo nombre:');
+        if (name) {
+            await clientsService.updateClient(id, { name });
+        }
+    };
 
-        document.querySelectorAll('.btn-edit-client').forEach(btn => {
-            btn.addEventListener('click', (e) => editClient(e.target.dataset.id));
-        });
-        document.querySelectorAll('.btn-delete-client').forEach(btn => {
-            btn.addEventListener('click', (e) => deleteClient(e.target.dataset.id));
-        });
-    }
+    btnAdd.addEventListener('click', async () => {
+        const name = prompt('Nombre del cliente:');
+        const phone = prompt('Teléfono del cliente (opcional):');
+        if (name) {
+            await clientsService.createClient({ name, phone });
+        }
+    });
 
-    store.subscribe('CLIENTS_UPDATED', renderClients);
+    store.subscribe('CLIENTS_UPDATED', renderClientsList);
+
+    // Initial load
     clientsService.loadClients();
 
-    document.getElementById('btn-add-client').addEventListener('click', () => {
-        form.reset();
-        document.getElementById('client-id').value = '';
-        document.getElementById('client-form-title').innerText = 'Nuevo Cliente';
-        formContainer.style.display = 'block';
-        clientsList.style.display = 'none';
+    // Listen to hash router events
+    window.addEventListener('nav-client-detail', async (e) => {
+        const clientId = e.detail.id;
+        await renderClientDetail(clientId);
     });
+}
 
-    document.getElementById('btn-cancel-client').addEventListener('click', () => {
-        formContainer.style.display = 'none';
-        clientsList.style.display = 'block';
-    });
+function renderClientsList(clients) {
+    const container = document.getElementById('clients-list');
+    if (!container) return;
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('client-id').value;
-        const data = {
-            name: document.getElementById('client-name').value,
-            phone: document.getElementById('client-phone').value,
-            email: document.getElementById('client-email').value
+    if (!clients || clients.length === 0) {
+        container.innerHTML = '<p>No hay clientes.</p>';
+        return;
+    }
+
+    // Drill-down link around client name/card
+    container.innerHTML = clients.map(c => `
+        <div class="card" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="location.hash='#/client/${c.id}'">
+            <div>
+                <h3 style="color: var(--accent-color);">${c.name}</h3>
+                ${c.phone ? `<p style="font-size: 0.9rem; color: var(--text-secondary);">📞 ${c.phone}</p>` : ''}
+            </div>
+            <div class="actions">
+                <button onclick="editClient('${c.id}', event)" class="secondary-btn small">✏️</button>
+                <button onclick="deleteClient('${c.id}', event)" class="primary-btn small" style="background-color: var(--danger-color);">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+
+    // reset breadcrumbs on root view
+    updateBreadcrumb([]);
+}
+
+async function renderClientDetail(clientId) {
+    let client = store.getState().clients.find(c => c.id === clientId);
+    if (!client) {
+        // Fallback fetch if deep linked
+        const clients = await clientsService.loadClients();
+        client = clients.find(c => c.id === clientId);
+    }
+
+    if (!client) {
+        document.getElementById('view-client-detail').innerHTML = '<p>Cliente no encontrado</p>';
+        return;
+    }
+
+    updateBreadcrumb([
+        { label: 'Clientes', link: '#/clients' },
+        { label: client.name, link: `#/client/${clientId}` }
+    ]);
+
+    document.getElementById('client-detail-name').textContent = client.name;
+    document.getElementById('client-detail-phone').textContent = client.phone || 'No registrado';
+    document.getElementById('client-detail-email').textContent = client.email || 'No registrado';
+
+    // Hook edit
+    const btnEdit = document.getElementById('btn-edit-client');
+    btnEdit.onclick = () => window.editClient(clientId, { stopPropagation: () => { } });
+
+    // Hook add equipment
+    const btnAddEq = document.getElementById('btn-add-equipment');
+    if (btnAddEq) {
+        btnAddEq.onclick = () => {
+            const type = prompt('Tipo de equipo (Ej: Heladera, Aire):');
+            const brand = prompt('Marca del equipo:');
+            if (type && brand) {
+                // Dispach event to equipment module to create it
+                window.dispatchEvent(new CustomEvent('create-equipment', { detail: { clientId, type, brand } }));
+            }
         };
-
-        try {
-            if (id) {
-                await clientsService.updateClient(id, data);
-            } else {
-                await clientsService.createClient(data);
-            }
-            formContainer.style.display = 'none';
-            clientsList.style.display = 'block';
-        } catch (err) {
-            alert('Error al guardar: ' + err.message);
-        }
-    });
-
-    searchInput.addEventListener('input', (e) => {
-        const filtered = clientsService.searchClients(e.target.value);
-        renderClients(filtered);
-    });
-
-    function editClient(id) {
-        const client = store.getState().clients.find(c => c.id === id);
-        if (!client) return;
-
-        document.getElementById('client-id').value = client.id;
-        document.getElementById('client-name').value = client.name;
-        document.getElementById('client-phone').value = client.phone;
-        document.getElementById('client-email').value = client.email || '';
-
-        document.getElementById('client-form-title').innerText = 'Editar Cliente';
-        formContainer.style.display = 'block';
-        clientsList.style.display = 'none';
     }
 
-    async function deleteClient(id) {
-        if (confirm('¿Estás seguro de eliminar este cliente?')) {
-            try {
-                await clientsService.deleteClient(id);
-            } catch (err) {
-                alert('Hubo un error al eliminar: ' + err.message);
-            }
-        }
-    }
+    // Trigger load of equipment for this client
+    window.dispatchEvent(new CustomEvent('load-client-equipment', { detail: { clientId } }));
 }
