@@ -1,4 +1,4 @@
-import { itemsService } from '../services/items.service.js';
+import { itemsService } from '../../services/items.service.js';
 import { store } from '../../state/store.js';
 import { updateBreadcrumb } from '../ui/core.ui.js';
 
@@ -55,7 +55,7 @@ function renderItemsList(items) {
                 <p style="font-size: 0.9rem; color: var(--text-secondary);">Estado: ${item.condition}</p>
             </div>
              <div class="actions">
-                <button onclick="deleteItem('${item.id}', event)" class="primary-btn small" style="background-color: var(--danger-color);">🗑️</button>
+                <button onclick="event.stopPropagation(); deleteItem('${item.id}', event)" class="primary-btn small" style="background-color: var(--danger-color);">🗑️</button>
             </div>
         </div>
     `).join('');

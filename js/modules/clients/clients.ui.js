@@ -1,4 +1,4 @@
-import { clientsService } from '../services/clients.service.js';
+import { clientsService } from '../../services/clients.service.js';
 import { store } from '../../state/store.js';
 import { updateBreadcrumb } from '../ui/core.ui.js';
 
@@ -58,8 +58,8 @@ function renderClientsList(clients) {
                 ${c.phone ? `<p style="font-size: 0.9rem; color: var(--text-secondary);">📞 ${c.phone}</p>` : ''}
             </div>
             <div class="actions">
-                <button onclick="editClient('${c.id}', event)" class="secondary-btn small">✏️</button>
-                <button onclick="deleteClient('${c.id}', event)" class="primary-btn small" style="background-color: var(--danger-color);">🗑️</button>
+                <button onclick="event.stopPropagation(); editClient('${c.id}', event)" class="secondary-btn small">✏️</button>
+                <button onclick="event.stopPropagation(); deleteClient('${c.id}', event)" class="primary-btn small" style="background-color: var(--danger-color);">🗑️</button>
             </div>
         </div>
     `).join('');

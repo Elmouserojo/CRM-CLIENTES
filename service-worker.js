@@ -6,6 +6,18 @@ const ASSETS_TO_CACHE = [
     '/js/app.js',
     '/js/router.js',
     '/js/modules/ui/core.ui.js',
+    '/js/modules/clients/clients.ui.js',
+    '/js/modules/equipment/equipment.ui.js',
+    '/js/modules/items/items.ui.js',
+    '/js/modules/jobs/jobs.ui.js',
+    '/js/modules/photos/photos.ui.js',
+    '/js/services/clients.service.js',
+    '/js/services/equipment.service.js',
+    '/js/services/items.service.js',
+    '/js/services/jobs.service.js',
+    '/js/services/photos.service.js',
+    '/js/state/store.js',
+    '/js/db/database.js',
     '/manifest.json'
 ];
 

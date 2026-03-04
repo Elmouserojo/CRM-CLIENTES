@@ -1,4 +1,4 @@
-import { jobsService } from '../services/jobs.service.js';
+import { jobsService } from '../../services/jobs.service.js';
 import { store } from '../../state/store.js';
 
 export function initJobsUI() {
@@ -77,8 +77,8 @@ function renderAllJobsList(jobs) {
                 <!-- We would normally resolve the Client and Equipment names here, simplifying for POC -->
             </div>
              <div class="actions" style="display: flex; flex-direction: column; gap: 8px;">
-                ${j.status !== 'terminado' ? `<button onclick="finishJob('${j.id}', event)" class="secondary-btn small" style="color: var(--accent-color);">✔️ Terminar</button>` : ''}
-                <button onclick="deleteJob('${j.id}', event)" class="primary-btn small" style="background-color: var(--danger-color);">🗑️ Eliminar</button>
+                ${j.status !== 'terminado' ? `<button onclick="event.stopPropagation(); finishJob('${j.id}', event)" class="secondary-btn small" style="color: var(--accent-color);">✔️ Terminar</button>` : ''}
+                <button onclick="event.stopPropagation(); deleteJob('${j.id}', event)" class="primary-btn small" style="background-color: var(--danger-color);">🗑️ Eliminar</button>
             </div>
         </div>
     `).join('');
@@ -101,8 +101,8 @@ function renderItemJobsList(jobs) {
                 <p style="font-size: 0.9rem; color: var(--accent-hover);">$${j.price || 0}</p>
             </div>
              <div class="actions" style="display: flex; flex-direction: column; gap: 8px;">
-                ${j.status !== 'terminado' ? `<button onclick="finishJob('${j.id}', event)" class="secondary-btn small" style="color: var(--accent-color);">✔️</button>` : ''}
-                <button onclick="deleteJob('${j.id}', event)" class="primary-btn small" style="background-color: var(--danger-color);">🗑️</button>
+                ${j.status !== 'terminado' ? `<button onclick="event.stopPropagation(); finishJob('${j.id}', event)" class="secondary-btn small" style="color: var(--accent-color);">✔️</button>` : ''}
+                <button onclick="event.stopPropagation(); deleteJob('${j.id}', event)" class="primary-btn small" style="background-color: var(--danger-color);">🗑️</button>
             </div>
         </div>
     `).join('');

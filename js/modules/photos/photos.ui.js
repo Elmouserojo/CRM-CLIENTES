@@ -1,4 +1,4 @@
-import { photosService } from '../services/photos.service.js';
+import { photosService } from '../../services/photos.service.js';
 
 export function initPhotosUI() {
     window.addEventListener('load-item-photos', async (e) => {

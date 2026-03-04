@@ -1,4 +1,4 @@
-import { equipmentService } from '../services/equipment.service.js';
+import { equipmentService } from '../../services/equipment.service.js';
 import { store } from '../../state/store.js';
 import { updateBreadcrumb } from '../ui/core.ui.js';
 
@@ -55,7 +55,7 @@ function renderEquipmentList(equipment) {
                 <p style="font-size: 0.9rem; color: var(--text-secondary);">Marca: ${eq.brand}</p>
             </div>
             <div class="actions">
-                <button onclick="deleteEquipment('${eq.id}', event)" class="primary-btn small" style="background-color: var(--danger-color);">🗑️</button>
+                <button onclick="event.stopPropagation(); deleteEquipment('${eq.id}', event)" class="primary-btn small" style="background-color: var(--danger-color);">🗑️</button>
             </div>
         </div>
     `).join('');
@@ -76,7 +76,7 @@ async function renderEquipmentDetail(id) {
     // Grab client info for breadcrumb
     let clients = store.getState().clients;
     if (!clients || clients.length === 0) {
-        const { clientsService } = await import('../services/clients.service.js');
+        const { clientsService } = await import('../../services/clients.service.js');
         clients = await clientsService.loadClients();
     }
     const client = clients.find(c => c.id === equipment.clientId);
