@@ -1,3 +1,5 @@
+import { updateBreadcrumb } from './modules/ui/core.ui.js';
+
 export function initRouter() {
     window.addEventListener('hashchange', handleRouteChange);
 
@@ -16,7 +18,7 @@ function handleRouteChange() {
     if (hash === '#/clients' || hash === '') {
         document.getElementById('view-clients').style.display = 'block';
         document.getElementById('nav-clients')?.classList.add('active');
-        // trigger render for clients list
+        updateBreadcrumb([]); // Hide breadcrumb on root
     } else if (hash.startsWith('#/client/')) {
         const id = hash.split('/')[2];
         const view = document.getElementById('view-client-detail');
@@ -45,6 +47,6 @@ function handleRouteChange() {
     } else if (hash === '#/jobs') {
         document.getElementById('view-jobs').style.display = 'block';
         document.getElementById('nav-jobs')?.classList.add('active');
-        // trigger render for jobs list
+        updateBreadcrumb([]); // Hide breadcrumb on root
     }
 }

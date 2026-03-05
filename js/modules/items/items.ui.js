@@ -74,8 +74,18 @@ async function renderItemDetail(id) {
     }
 
     // Grab equipment and client for breadcrumb
-    let equipment = store.getState().equipment?.find(e => e.id === item.equipmentId);
+    let equipmentList = store.getState().equipment;
+    if (!equipmentList || equipmentList.length === 0) {
+        const { equipmentService } = await import('../../services/equipment.service.js');
+        equipmentList = await equipmentService.loadEquipment();
+    }
+    let equipment = equipmentList?.find(e => e.id === item.equipmentId);
+
     let clients = store.getState().clients;
+    if (!clients || clients.length === 0) {
+        const { clientsService } = await import('../../services/clients.service.js');
+        clients = await clientsService.loadClients();
+    }
 
     let clientName = 'Cliente';
     let eqName = 'Equipo';
